@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("Error renaming folder:", error);
+
     return NextResponse.json(
       { error: "Internal server error." },
       { status: 500 }

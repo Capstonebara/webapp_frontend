@@ -1,9 +1,10 @@
 import { Button } from "@nextui-org/button";
 import { Input } from "@nextui-org/input";
 import { useFormContext, useWatch } from "react-hook-form";
+import { useMediaQuery } from "react-responsive";
+
 import { AuthenticatorSchema } from "./type";
 import { authenApi } from "./api";
-import { useMediaQuery } from "react-responsive";
 
 export function InputValid() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
@@ -11,12 +12,13 @@ export function InputValid() {
   const { control, setValue } = useFormContext<AuthenticatorSchema>();
   const loading = useWatch({ control, name: "loading" });
   const email = useWatch({ control, name: "email" });
-  const index = useWatch({ control, name: "index" });
+  // const index = useWatch({ control, name: "index" });
 
   const handleClick = async () => {
     setValue("loading", true);
 
     const email_lower = email.toLowerCase();
+
     setValue("success", true);
 
     try {
@@ -67,18 +69,18 @@ export function InputValid() {
         <>
           <div className="flex w-[600px] gap-x-3 justify-center items-center">
             <Input
-              type="email"
+              className="w-[500px]"
               label="Email"
               placeholder="E.g: example@gmail.com"
-              className="w-[500px]"
+              type="email"
               value={email}
               onChange={(e) => setValue("email", e.target.value)}
             />
             <div>
               <Button
+                className="h-[56px]"
                 color="primary"
                 isLoading={loading}
-                className="h-[56px]"
                 onClick={handleClick}
               >
                 {loading ? "Loading" : "Confirm"}
@@ -91,18 +93,18 @@ export function InputValid() {
         <>
           <div className="flex flex-col w-[300px] gap-y-3 justify-center items-center">
             <Input
-              type="email"
+              className="w-[350px]"
               label="Email"
               placeholder="E.g: example@gmail.com"
-              className="w-[350px]"
+              type="email"
               value={email}
               onChange={(e) => setValue("email", e.target.value)}
             />
             <div>
               <Button
+                className="w-[350px]"
                 color="primary"
                 isLoading={loading}
-                className="w-[350px]"
                 onClick={handleClick}
               >
                 {loading ? "Loading" : "Confirm"}

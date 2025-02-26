@@ -1,19 +1,21 @@
 "use client";
 
 import { title } from "@/components/primitives";
+
 import { useForm, FormProvider, useWatch } from "react-hook-form";
-import { AuthenticatorSchema } from "./type";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authenSchema } from "./type";
-import { InputValid } from "./input";
 import React, { useEffect } from "react";
 import { Bounce, ToastContainer, toast } from "react-toastify";
+
 import "react-toastify/dist/ReactToastify.css";
-import { InformationPage } from "./information";
-import { FaceDetect } from "./face";
-import { Submit } from "./submit";
 import { useMediaQuery } from "react-responsive";
-import Head from "next/head";
+
+import { Submit } from "./submit";
+import { FaceDetect } from "./face";
+import { InformationPage } from "./information";
+import { InputValid } from "./input";
+import { authenSchema } from "./type";
+import { AuthenticatorSchema } from "./type";
 
 export default function AuthenPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
@@ -188,7 +190,7 @@ export default function AuthenPage() {
                       Demo
                     </div>
                   </div>
-                  <h1 className="text-sm font-semibold"></h1>
+                  {/* <h1 className="text-sm font-semibold" /> */}
                   <FormProvider {...methods}>
                     <InputValid />
                   </FormProvider>
@@ -279,10 +281,7 @@ export default function AuthenPage() {
           {isFinish && (
             <div className="text-xl flex flex-col border-1 border-transparent p-10 rounded-2xl backdrop-blur-3xl bg-white/20">
               <p className="text-center">Thanks {name}</p>
-              <p className="text-[15px] text-center">
-                Chào mừng bạn đến với "RETRO NIGHT VI: Legacy of Flames". Chúc
-                bạn có một buổi tối đáng nhớ cùng FAIC.
-              </p>
+              {/* <p className="text-[15px] text-center"></p> */}
             </div>
           )}
         </div>

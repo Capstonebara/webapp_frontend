@@ -2,10 +2,12 @@
 
 import * as faceapi from "face-api.js";
 import { useEffect, useRef, useState, useMemo } from "react";
-import { AuthenticatorSchema } from "./type";
 import { useFormContext, useWatch } from "react-hook-form";
-import { convertNameEmail } from "@/config/name";
 import { useMediaQuery } from "react-responsive";
+
+import { AuthenticatorSchema } from "./type";
+
+import { convertNameEmail } from "@/config/name";
 
 export function FaceDetect() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
@@ -15,8 +17,10 @@ export function FaceDetect() {
   useEffect(() => {
     const checkIsIOS = () => {
       const userAgent = window.navigator.userAgent.toLowerCase();
+
       return /iphone|ipad|ipod/.test(userAgent);
     };
+
     setIsIOS(checkIsIOS());
   }, []);
 
@@ -74,12 +78,14 @@ export function FaceDetect() {
         const scaleFactor = isMobile ? 0.9 : 1;
         const newWidth = containerWidth * scaleFactor;
         const newHeight = containerHeight * scaleFactor;
+
         setDimensions({
           width: newWidth,
           height: newHeight,
         });
 
         const circleDiameter = Math.min(newWidth, newHeight) * 0.65;
+
         setCircleSize({
           width: circleDiameter,
           height: circleDiameter,
@@ -89,6 +95,7 @@ export function FaceDetect() {
 
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
+
     return () => window.removeEventListener("resize", updateDimensions);
   }, [isMobile]);
 
@@ -96,6 +103,7 @@ export function FaceDetect() {
   useEffect(() => {
     const loadModels = async () => {
       const MODEL_URL = publicDir + "/models";
+
       try {
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
@@ -106,6 +114,7 @@ export function FaceDetect() {
         console.error("Error loading models:", error);
       }
     };
+
     loadModels();
   }, []);
 
@@ -152,6 +161,7 @@ export function FaceDetect() {
       if (pitch > 170 && yaw >= -2 && yaw <= 15) return "Down";
       if (yaw < 0) return "Right";
       if (yaw > 15) return "Left";
+
       return "Straight";
     }
 
@@ -159,6 +169,7 @@ export function FaceDetect() {
     if (pitch > 170 && yaw >= -10 && yaw <= 15) return "Down";
     if (yaw < -20) return "Right";
     if (yaw > 20) return "Left";
+
     return "Straight";
   };
 
@@ -168,6 +179,7 @@ export function FaceDetect() {
     direction: string
   ) => {
     const currentTime = Date.now();
+
     if (currentTime - lastCaptureTime.current < captureDebounceTime) {
       return false;
     }
@@ -175,6 +187,7 @@ export function FaceDetect() {
     if (!videoRef.current) return false;
 
     const video = videoRef.current;
+
     try {
       const scaleX = video.videoWidth / video.width;
       const scaleY = video.videoHeight / video.height;
@@ -240,6 +253,7 @@ export function FaceDetect() {
 
       const name_email = convertNameEmail(email);
       const formData = new FormData();
+
       formData.append("image", blob, `${direction}-${Date.now()}.jpg`);
       formData.append("name", name);
       formData.append("email", name_email);
@@ -259,11 +273,13 @@ export function FaceDetect() {
           ...prev,
           [direction]: Math.min((prev[direction] || 0) + 20, 100), // Increment by 2% for each successful capture
         }));
+
         return true;
       }
     } catch (error) {
       console.error("Error capturing and saving frame:", error);
     }
+
     return false;
   };
 
@@ -273,6 +289,7 @@ export function FaceDetect() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const displaySize = { width: video.width, height: video.height };
+
     faceapi.matchDimensions(canvas, displaySize);
 
     const counts: Record<string, number> = {
@@ -313,6 +330,7 @@ export function FaceDetect() {
         if (detections.length >= 2) {
           setValue("faceDirection", "Multiple faces detected");
           processingRef.current = false;
+
           return;
         }
 
@@ -321,8 +339,10 @@ export function FaceDetect() {
           displaySize
         );
         const context = canvas.getContext("2d");
+
         if (!context) {
           processingRef.current = false;
+
           return;
         }
 
@@ -331,6 +351,7 @@ export function FaceDetect() {
         if (resizedDetections.length === 0) {
           setValue("faceDirection", "No face detected");
           processingRef.current = false;
+
           return;
         }
 
@@ -340,14 +361,17 @@ export function FaceDetect() {
 
         const pose = calculateFacePose(resizedDetections[0].landmarks);
         const currentDirection = getFaceDirection(pose);
+
         setValue("faceDirection", currentDirection);
 
         const currentStage = captureSequence[currentStageIndex];
+
         if (!currentStage) {
           clearInterval(intervalId);
           setValue("lookingFor", "Done capturing all images");
           setValue("isDone", true);
           processingRef.current = false;
+
           return;
         }
 
@@ -385,6 +409,7 @@ export function FaceDetect() {
     }, DETECTION_INTERVAL);
 
     intervalRef.current = intervalId;
+
     return () => clearInterval(intervalId);
   };
 
@@ -440,13 +465,14 @@ export function FaceDetect() {
           console.error("Error accessing camera:", error);
         });
     }
+
     return () => {
       stopWebcam();
     };
   }, [isModelsLoaded, isDone, isIOS]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto" ref={containerRef}>
+    <div ref={containerRef} className="w-full max-w-4xl mx-auto">
       <div className="flex flex-col gap-y-3">
         <div className="text-center flex flex-col gap-y-3">
           <h2
@@ -499,21 +525,21 @@ export function FaceDetect() {
         >
           <video
             ref={videoRef}
+            className="rounded-2xl w-full h-full object-cover"
+            height={dimensions.height}
+            style={{ transform: isMobile ? "scaleX(-1)" : "none" }}
+            width={dimensions.width}
+            onPlay={handleVideoPlay}
             autoPlay
             // playsInline
             muted
-            onPlay={handleVideoPlay}
-            width={dimensions.width}
-            height={dimensions.height}
-            className="rounded-2xl w-full h-full object-cover"
-            style={{ transform: isMobile ? "scaleX(-1)" : "none" }}
           />
           <canvas
             ref={canvasRef}
-            width={dimensions.width}
-            height={dimensions.height}
             className="absolute top-0 left-0 w-full h-full"
+            height={dimensions.height}
             style={{ transform: isMobile ? "scaleX(-1)" : "none" }}
+            width={dimensions.width}
           />
 
           {/* Focus circle for mobile */}
@@ -522,26 +548,26 @@ export function FaceDetect() {
             <>
               <svg
                 className="absolute inset-0 w-full h-full pointer-events-none"
-                viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
                 preserveAspectRatio="none"
+                viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
               >
                 <defs>
                   <mask id="circle-mask">
-                    <rect width="100%" height="100%" fill="white" />
+                    <rect fill="white" height="100%" width="100%" />
                     <circle
                       cx={dimensions.width / 2}
                       cy={dimensions.height / 2}
-                      r={circleSize.width / 2}
                       fill="black"
+                      r={circleSize.width / 2}
                     />
                   </mask>
                 </defs>
                 <rect
-                  width="100%"
-                  height="100%"
                   fill="black"
-                  opacity="0.7"
+                  height="100%"
                   mask="url(#circle-mask)"
+                  opacity="0.7"
+                  width="100%"
                 />
               </svg>
             </>

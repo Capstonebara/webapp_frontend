@@ -1,9 +1,6 @@
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
-import { Link } from "@nextui-org/link";
 import clsx from "clsx";
-
-import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
@@ -36,8 +33,8 @@ export default function RootLayout({
       <head>
         {/* Thêm meta để chặn phóng to */}
         <meta
-          name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+          name="viewport"
         />
       </head>
       <body

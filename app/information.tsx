@@ -1,10 +1,10 @@
 import { useFormContext, useWatch } from "react-hook-form";
-import { AuthenticatorSchema } from "./type";
 import { Input } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
-
 import { useMemo } from "react";
 import { useMediaQuery } from "react-responsive";
+
+import { AuthenticatorSchema } from "./type";
 
 export function InformationPage() {
   const isMobile = useMediaQuery({ maxWidth: 768 });
