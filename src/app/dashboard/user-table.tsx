@@ -11,10 +11,11 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Eye, Plus, Loader } from "lucide-react";
+import { Eye, Plus, Loader, Trash2 } from "lucide-react";
 import { UserProfileModal } from "./user-profile-modal";
 import { AddUserModal } from "./add-user-modal";
 import { getUsers } from "./fetch";
+import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 
 export interface User {
   id: number;
@@ -33,6 +34,8 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     async function fetchUsers() {
@@ -48,6 +51,19 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
     }
     fetchUsers();
   }, [token, user]);
+
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = () => {
+    if (userToDelete) {
+      //   setUsers(users.filter((user) => user.id !== userToDelete.id));
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
 
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
@@ -102,15 +118,26 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
                   <TableCell>{user.gender}</TableCell>
                   <TableCell>{user.phone}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleViewUser(user)}
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewUser(user)}
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(user)}
+                        title="Remove User"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -127,6 +154,13 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
       <AddUserModal
         isOpen={isAddUserModalOpen}
         onClose={() => setIsAddUserModalOpen(false)}
+      />
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteUser}
+        user={userToDelete}
       />
     </div>
   );
