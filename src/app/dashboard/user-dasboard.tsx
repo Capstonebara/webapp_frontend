@@ -11,12 +11,18 @@ import { DashboardSidebar } from "./dashboard-sidebar";
 import { UsersTable } from "./user-table";
 import { AccessLogs } from "./access-logs";
 
-export default function UserDashboard() {
+export default function UserDashboard({
+  token,
+  user,
+}: {
+  token: string;
+  user: string;
+}) {
   const [activeTab, setActiveTab] = useState("users");
 
   return (
     <SidebarProvider>
-      <DashboardSidebar />
+      <DashboardSidebar user={user} />
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b px-6">
           <SidebarTrigger />
@@ -37,7 +43,7 @@ export default function UserDashboard() {
             </TabsList>
 
             <TabsContent value="users" className="mt-0">
-              <UsersTable />
+              <UsersTable token={token} user={user} />
             </TabsContent>
 
             <TabsContent value="logs" className="mt-0">

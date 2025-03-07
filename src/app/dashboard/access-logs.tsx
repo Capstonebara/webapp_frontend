@@ -11,7 +11,7 @@ export function AccessLogs() {
       name: "John Doe",
       photoUrl: "/placeholder.svg",
       timestamp: "2023-07-15T08:30:00",
-      type: "entry",
+      type: "exit",
     },
     {
       id: 2,

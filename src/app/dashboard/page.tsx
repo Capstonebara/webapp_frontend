@@ -5,11 +5,15 @@ import UserDashboard from "./user-dasboard";
 
 export default function Dashboard() {
   const [accessToken, setAccessToken] = useState("");
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
     const storedValue = localStorage.getItem("accessToken");
-    if (storedValue) {
+    const username = localStorage.getItem("user");
+
+    if (storedValue && username) {
       setAccessToken(storedValue);
+      setUsername(username);
     }
   }, []);
 
@@ -17,7 +21,7 @@ export default function Dashboard() {
     <>
       {accessToken ? (
         <div className="min-h-screen bg-background">
-          <UserDashboard />
+          <UserDashboard token={accessToken} user={username} />
         </div>
       ) : (
         <div>404</div>

@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginUser } from "./login";
 // import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation"; // Thêm import này
-import { useState } from "react";
+// import { useEffect, useState } from "react";
+import { Bounce, toast } from "react-toastify";
 
 export default function Auth() {
   const {
@@ -22,8 +23,6 @@ export default function Auth() {
   });
 
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  console.log("error", error);
 
   const onSubmit = async (data: { username: string; password: string }) => {
     try {
@@ -36,17 +35,57 @@ export default function Auth() {
         if (authHeader) {
           accessToken = authHeader.split("Bearer ")[1];
           localStorage.setItem("accessToken", accessToken);
+          localStorage.setItem("user", data.username);
+          toast.success(response.message, {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: true,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+            transition: Bounce,
+          });
           router.push("/dashboard"); // Thay đổi đường dẫn
         } else {
-          setError("Authorization header not found");
+          toast.error(response.message, {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: true,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+            transition: Bounce,
+          });
         }
       } else {
-        setError(response.message || "Login failed");
-        console.log("Login failed:", response);
+        toast.error(response.message, {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
       }
-    } catch (error) {
-      setError("An error occurred during login");
-      console.error("Login error:", error);
+    } catch {
+      toast.error("An error occurred during login", {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: true,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        transition: Bounce,
+      });
     }
   };
 
