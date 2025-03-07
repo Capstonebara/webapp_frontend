@@ -7,8 +7,9 @@ import { useForm } from "react-hook-form";
 import { AuthSchema, authSchema } from "./type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginUser } from "./login";
-import { redirect } from "next/navigation";
-import axios from "axios";
+// import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation"; // Thêm import này
+import { useState } from "react";
 
 export default function Auth() {
   const {
@@ -20,18 +21,32 @@ export default function Auth() {
     mode: "onChange",
   });
 
-  const onSubmit = async (data: { username: string; password: string }) => {
-    const base = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  console.log("error", error);
 
+  const onSubmit = async (data: { username: string; password: string }) => {
     try {
-      const response = await axios.post(
-        `${base}/login`,
-        new URLSearchParams(data),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-      );
-      console.log("response.data.access_token", response);
+      const response = await loginUser(data);
+
+      if (response.success) {
+        const authHeader = response.headers["authorization"];
+        let accessToken;
+
+        if (authHeader) {
+          accessToken = authHeader.split("Bearer ")[1];
+          localStorage.setItem("accessToken", accessToken);
+          router.push("/dashboard"); // Thay đổi đường dẫn
+        } else {
+          setError("Authorization header not found");
+        }
+      } else {
+        setError(response.message || "Login failed");
+        console.log("Login failed:", response);
+      }
     } catch (error) {
-      console.error("Login failed", error);
+      setError("An error occurred during login");
+      console.error("Login error:", error);
     }
   };
 
@@ -44,7 +59,7 @@ export default function Auth() {
             Enter your email below to login to your account
           </p>
         </div>
-        {/* 🛠 Gắn handleSubmit vào form */}
+        {/* Gắn handleSubmit vào form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="text">Username</Label>
