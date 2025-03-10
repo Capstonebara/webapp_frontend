@@ -26,8 +26,8 @@ import { Bounce, toast } from "react-toastify";
 import { useState } from "react";
 import { FaceDetect } from "./face-detect";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check } from "lucide-react";
-import { set } from "zod";
+import { Check, Loader2 } from "lucide-react";
+import path from "path";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -46,17 +46,13 @@ export function AddUserModal({
     register,
     handleSubmit,
     control,
+    reset,
     formState: { isValid },
   } = useForm<DashboardSchema>({
     resolver: zodResolver(dashboardSchema),
     mode: "onChange",
     defaultValues: {
       username: user,
-      fullname: "",
-      apartment: "",
-      gender: undefined,
-      phone: "",
-      email: "",
     },
   });
 
@@ -68,6 +64,7 @@ export function AddUserModal({
   const [formStep, setFormStep] = useState(true);
   const [confirmStep, setConfirmStep] = useState(false);
   const [id, setId] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (form: DashboardSchema) => {
     try {
@@ -107,9 +104,99 @@ export function AddUserModal({
   };
 
   const onComfirm = async () => {
-    onClose();
-    setConfirmStep(false);
-    setFormStep(true);
+    // onClose();
+    // setConfirmStep(false);
+    // setFormStep(true);
+
+    setLoading(true);
+
+    try {
+      // Gọi API zip để tạo file ZIP
+      const zipResponse = await fetch(`/api/zip`, { method: "POST" });
+
+      if (!zipResponse.ok) {
+        console.error(
+          "Error creating ZIP:",
+          zipResponse.status,
+          await zipResponse.text()
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Lấy danh sách file ZIP từ API
+      const { zipFiles } = await zipResponse.json();
+      if (!zipFiles || zipFiles.length === 0) {
+        console.error("No ZIP files created");
+        setLoading(false);
+        return;
+      }
+
+      // Đọc file ZIP từ server
+      const zipFilePath = zipFiles[0]; // Lấy file đầu tiên (hoặc lặp qua nếu có nhiều file)
+      const zipBlob = await fetch(
+        `/api/download?file=${encodeURIComponent(zipFilePath)}`
+      ).then((res) => res.blob());
+      const zipFile = new File([zipBlob], path.basename(zipFilePath));
+
+      // Chuẩn bị dữ liệu gửi đến API embed
+      const formData = new FormData();
+      formData.append("file", zipFile);
+
+      // Gửi file ZIP đến API embed
+      const embedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/embed?folder_name=${id}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (embedResponse.ok) {
+        reset();
+
+        onClose();
+        setConfirmStep(false);
+        setFormStep(true);
+        setLoading(false);
+        toast.success("Add user successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
+      } else {
+        toast.error(embedResponse.status, {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
+      }
+    } catch (error) {
+      toast.error(String(error), {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: true,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        transition: Bounce,
+      });
+      setLoading(false);
+    }
   };
 
   const ConfirmDialog = () => {
@@ -167,128 +254,134 @@ export function AddUserModal({
         </div>
 
         <DialogFooter className="flex justify-between sm:justify-between">
-          <Button className="flex items-center gap-2" onClick={onComfirm}>
-            <Check className="h-4 w-4" /> Confirm & Add
-          </Button>
+          {loading ? (
+            <Button disabled>
+              <Loader2 className="animate-spin" />
+              Please wait
+            </Button>
+          ) : (
+            <Button className="flex items-center gap-2" onClick={onComfirm}>
+              <Check className="h-4 w-4" /> Confirm & Add
+            </Button>
+          )}
         </DialogFooter>
       </>
     );
   };
-
-  const SubmitDialog = () => {
-    return (
-      <>
-        <DialogHeader>
-          <DialogTitle>Add New User</DialogTitle>
-          <DialogDescription>
-            Enter the details of the new user below.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username
-              </Label>
-              <Input
-                id="username"
-                className="col-span-3"
-                disabled
-                {...register("username")}
-                defaultValue={user}
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Full Name
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                {...register("fullname")}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="apartment" className="text-right">
-                Apartment
-              </Label>
-              <Input
-                id="apartment"
-                type="text"
-                {...register("apartment")}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 gap-4 items-center">
-              <Label htmlFor="gender" className="text-right">
-                Gender
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="gender"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="M">Male</SelectItem>
-                        <SelectItem value="F">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                type="text"
-                {...register("phone")}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!isValid}>
-              Add User
-            </Button>
-          </DialogFooter>
-        </form>
-      </>
-    );
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
-        {formStep && <SubmitDialog />}
+        {formStep && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>
+                Enter the details of the new user below.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="username" className="text-right">
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    className="col-span-3"
+                    disabled
+                    {...register("username")}
+                    defaultValue={user}
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Full Name
+                  </Label>
+                  <Input
+                    autoFocus
+                    id="name"
+                    type="text"
+                    {...register("fullname")}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="apartment" className="text-right">
+                    Apartment
+                  </Label>
+                  <Input
+                    id="apartment"
+                    type="text"
+                    {...register("apartment")}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 items-center">
+                  <Label htmlFor="gender" className="text-right">
+                    Gender
+                  </Label>
+                  <div className="col-span-3">
+                    <Controller
+                      name="gender"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger id="gender">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="M">Male</SelectItem>
+                            <SelectItem value="F">Female</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Phone
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="text"
+                    {...register("phone")}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    {...register("email")}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!isValid}>
+                  Add User
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        )}
         {!formStep && !confirmStep && (
           <FaceDetect id={id} setConfirmStep={setConfirmStep} />
         )}

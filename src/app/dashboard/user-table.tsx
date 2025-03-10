@@ -39,19 +39,21 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        setIsLoading(true);
-        const data = await getUsers(user, token);
-        setUsers(data);
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      } finally {
-        setIsLoading(false);
+    if (!isAddUserModalOpen) {
+      async function fetchUsers() {
+        try {
+          setIsLoading(true);
+          const data = await getUsers(user, token);
+          setUsers(data);
+        } catch (error) {
+          console.error("Failed to fetch users", error);
+        } finally {
+          setIsLoading(false);
+        }
       }
+      fetchUsers();
     }
-    fetchUsers();
-  }, [token, user]);
+  }, [token, user, isAddUserModalOpen]);
 
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
