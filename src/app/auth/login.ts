@@ -9,7 +9,6 @@ export const loginUser = async (data: {
   formData.append("grant_type", "password"); // Giả định grant_type là "password"
   formData.append("username", data.username);
   formData.append("password", data.password);
-  // Các trường tùy chọn (nếu cần)
   formData.append("scope", "");
   formData.append("client_id", "");
   formData.append("client_secret", "");

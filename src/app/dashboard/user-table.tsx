@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Eye, Plus, Loader, Trash2 } from "lucide-react";
 import { UserProfileModal } from "./user-profile-modal";
 import { AddUserModal } from "./add-user-modal";
-import { getUsers } from "./fetch";
+import { deleteUser, getUsers } from "./fetch";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
+import { Bounce, toast } from "react-toastify";
 
 export interface User {
   id: number;
@@ -32,7 +33,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -57,9 +58,37 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (userToDelete) {
-      //   setUsers(users.filter((user) => user.id !== userToDelete.id));
+      try {
+        const response = await deleteUser(userToDelete.id, token);
+        if (response.success) {
+          setUsers(users.filter((user) => user.id !== userToDelete.id));
+          toast.success(response.message, {
+            position: "top-right",
+            autoClose: 2000,
+            hideProgressBar: true,
+            closeOnClick: false,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+            transition: Bounce,
+          });
+        }
+      } catch {
+        toast.error("False to delete user", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
+      }
       setIsDeleteDialogOpen(false);
       setUserToDelete(null);
     }
@@ -152,8 +181,10 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
         onClose={() => setIsModalOpen(false)}
       />
       <AddUserModal
+        token={token}
         isOpen={isAddUserModalOpen}
         onClose={() => setIsAddUserModalOpen(false)}
+        user={user}
       />
 
       <DeleteConfirmationDialog
