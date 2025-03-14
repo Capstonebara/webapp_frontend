@@ -8,7 +8,7 @@ export async function getUsers(username: string, token: string) {
   }
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/residents/users?username=${username}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/residents/users_info?username=${username}`,
     {
       method: "GET",
       headers: {

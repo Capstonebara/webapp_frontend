@@ -145,7 +145,7 @@ export function AddUserModal({
 
       // Gửi file ZIP đến API embed
       const embedResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/embed?folder_name=${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/embed?folder_id=${id}`,
         {
           method: "POST",
           body: formData,
