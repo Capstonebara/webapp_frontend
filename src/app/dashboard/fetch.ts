@@ -82,3 +82,42 @@ export async function addUser(form: DashboardSchema, token: string) {
 
   return result;
 }
+
+export async function editUser(
+  form: DashboardSchema,
+  token: string,
+  id: number
+) {
+  if (!token) {
+    throw new Error("Unauthorized");
+  }
+
+  const formData = {
+    username: form.username,
+    name: form.fullname,
+    apartment_number: form.apartment,
+    gender: form.gender,
+    phone: form.phone || "",
+    email: form.email || "",
+  };
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/residents/update?user_id=${id}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    }
+  );
+
+  const result = await response.json();
+  if (!response.ok) {
+    console.log("Error response:", result);
+    throw new Error(result.message || "Edit user failed");
+  }
+
+  return result;
+}

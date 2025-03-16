@@ -11,19 +11,20 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Eye, Plus, Loader, Trash2 } from "lucide-react";
+import { Eye, Plus, Loader, Trash2, Edit } from "lucide-react";
 import { UserProfileModal } from "./user-profile-modal";
 import { AddUserModal } from "./add-user-modal";
 import { deleteUser, getUsers } from "./fetch";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 import { Bounce, toast } from "react-toastify";
+import { EditUserModal } from "./edit-user";
 
 export interface User {
   id: number;
   username: string;
   name: string;
   apartment: string;
-  gender: string;
+  gender: "M" | "F";
   phone: string;
   email: string;
   photoUrl: string;
@@ -33,6 +34,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -53,7 +55,24 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
       }
       fetchUsers();
     }
-  }, [token, user, isAddUserModalOpen]);
+  }, [isAddUserModalOpen, token, user]);
+
+  useEffect(() => {
+    if (!isEditUserModalOpen) {
+      async function fetchUsers() {
+        try {
+          setIsLoading(true);
+          const data = await getUsers(user, token);
+          setUsers(data);
+        } catch (error) {
+          console.error("Failed to fetch users", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      fetchUsers();
+    }
+  }, [isEditUserModalOpen, token, user]);
 
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
@@ -99,6 +118,11 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setIsModalOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditUserModalOpen(true);
   };
 
   return (
@@ -162,6 +186,14 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Edit Account"
+                        onClick={() => handleEditUser(user)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDeleteClick(user)}
                         title="Remove User"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -176,6 +208,13 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
           </Table>
         </div>
       )}
+
+      <EditUserModal
+        token={token}
+        user={selectedUser}
+        isOpen={isEditUserModalOpen}
+        onClose={() => setIsEditUserModalOpen(false)}
+      />
 
       <UserProfileModal
         user={selectedUser}
