@@ -28,12 +28,14 @@ import { FaceDetect } from "./face-detect";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, Loader2 } from "lucide-react";
 import path from "path";
+import { User } from "./user-table";
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: string;
   token: string;
+  onUserAdded: (newUser: User) => void;
 }
 
 export function AddUserModal({
@@ -41,6 +43,7 @@ export function AddUserModal({
   onClose,
   user,
   token,
+  onUserAdded,
 }: AddUserModalProps) {
   const {
     register,
@@ -104,10 +107,6 @@ export function AddUserModal({
   };
 
   const onComfirm = async () => {
-    // onClose();
-    // setConfirmStep(false);
-    // setFormStep(true);
-
     setLoading(true);
 
     try {
@@ -153,8 +152,22 @@ export function AddUserModal({
       );
 
       if (embedResponse.ok) {
-        reset();
+        // Create new user object with the form data
+        const newUser: User = {
+          id: parseInt(id),
+          username: username,
+          name: fullname,
+          apartment: apartment,
+          gender: gender,
+          phone: phone || "",
+          email: email || "",
+          photoUrl: "", // You might need to get the actual photo URL from the response
+        };
 
+        // Call the callback to update parent component's state
+        onUserAdded(newUser);
+
+        reset();
         onClose();
         setConfirmStep(false);
         setFormStep(true);
@@ -171,7 +184,7 @@ export function AddUserModal({
           transition: Bounce,
         });
       } else {
-        toast.error(embedResponse.status, {
+        toast.error(embedResponse.status.toString(), {
           position: "top-right",
           autoClose: 2000,
           hideProgressBar: true,
@@ -268,6 +281,7 @@ export function AddUserModal({
       </>
     );
   };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">

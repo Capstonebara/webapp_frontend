@@ -40,39 +40,21 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  // Only fetch users on initial load
   useEffect(() => {
-    if (!isAddUserModalOpen) {
-      async function fetchUsers() {
-        try {
-          setIsLoading(true);
-          const data = await getUsers(user, token);
-          setUsers(data);
-        } catch (error) {
-          console.error("Failed to fetch users", error);
-        } finally {
-          setIsLoading(false);
-        }
+    async function fetchUsers() {
+      try {
+        setIsLoading(true);
+        const data = await getUsers(user, token);
+        setUsers(data);
+      } catch (error) {
+        console.error("Failed to fetch users", error);
+      } finally {
+        setIsLoading(false);
       }
-      fetchUsers();
     }
-  }, [isAddUserModalOpen, token, user]);
-
-  useEffect(() => {
-    if (!isEditUserModalOpen) {
-      async function fetchUsers() {
-        try {
-          setIsLoading(true);
-          const data = await getUsers(user, token);
-          setUsers(data);
-        } catch (error) {
-          console.error("Failed to fetch users", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      fetchUsers();
-    }
-  }, [isEditUserModalOpen, token, user]);
+    fetchUsers();
+  }, [token, user]);
 
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
@@ -98,7 +80,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
           });
         }
       } catch {
-        toast.error("False to delete user", {
+        toast.error("Failed to delete user", {
           position: "top-right",
           autoClose: 2000,
           hideProgressBar: true,
@@ -123,6 +105,16 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setIsEditUserModalOpen(true);
+  };
+
+  const handleUserAdded = (newUser: User) => {
+    setUsers((prevUsers) => [...prevUsers, newUser]);
+  };
+
+  const handleUserUpdated = (updatedUser: User) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+    );
   };
 
   return (
@@ -214,6 +206,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
         user={selectedUser}
         isOpen={isEditUserModalOpen}
         onClose={() => setIsEditUserModalOpen(false)}
+        onUserUpdated={handleUserUpdated}
       />
 
       <UserProfileModal
@@ -226,6 +219,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
         isOpen={isAddUserModalOpen}
         onClose={() => setIsAddUserModalOpen(false)}
         user={user}
+        onUserAdded={handleUserAdded}
       />
 
       <DeleteConfirmationDialog

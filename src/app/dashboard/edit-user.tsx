@@ -33,6 +33,7 @@ interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   token: string;
+  onUserUpdated: (updatedUser: User) => void;
 }
 
 export function EditUserModal({
@@ -40,6 +41,7 @@ export function EditUserModal({
   isOpen,
   onClose,
   token,
+  onUserUpdated,
 }: EditUserModalProps) {
   const {
     register,
@@ -73,6 +75,20 @@ export function EditUserModal({
       const response = await editUser(form, token, user.id);
 
       if (response.success) {
+        // Create updated user object
+        const updatedUser: User = {
+          ...user,
+          username: form.username,
+          name: form.fullname,
+          apartment: form.apartment,
+          gender: form.gender,
+          phone: form.phone || "",
+          email: form.email || "",
+        };
+
+        // Call the callback to update the parent component's state
+        onUserUpdated(updatedUser);
+
         reset();
         onClose();
         toast.success(response.message, {
