@@ -201,6 +201,8 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     return "Straight";
   };
 
+  const isFirstCapture = useRef(true);
+
   const captureAndSaveFrameFromVideo = async (
     boundingBox: faceapi.Box,
     count: number,
@@ -279,9 +281,13 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
         quality,
       });
 
+      const imageName = isFirstCapture.current
+        ? "main.jpg"
+        : `${direction}-${Date.now()}.jpg`;
+
       const formData = new FormData();
 
-      formData.append("image", blob, `${direction}-${Date.now()}.jpg`);
+      formData.append("image", blob, imageName);
       formData.append("name", id);
 
       const response = await fetch("/api/save-image", {
@@ -296,6 +302,11 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
           ...prev,
           [direction]: Math.min((prev[direction] || 0) + 20, 100), // Increment by 2% for each successful capture
         }));
+
+        // Mark that the first capture has been completed
+        if (isFirstCapture.current) {
+          isFirstCapture.current = false;
+        }
 
         return true;
       }

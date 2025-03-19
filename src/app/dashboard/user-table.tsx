@@ -46,9 +46,10 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
       try {
         setIsLoading(true);
         const data = await getUsers(user, token);
-        setUsers(data);
+        setUsers(data || []);
       } catch (error) {
         console.error("Failed to fetch users", error);
+        setUsers([]);
       } finally {
         setIsLoading(false);
       }
@@ -136,8 +137,8 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[60px]">Photo</TableHead>
                 <TableHead>ID</TableHead>
+                <TableHead>Photo</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Apartment</TableHead>
@@ -148,54 +149,58 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user: User) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.photoUrl} alt={user.name} />
-                      <AvatarFallback>
-                        {user.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{user.id}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.apartment}</TableCell>
-                  <TableCell>{user.gender}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleViewUser(user)}
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Edit Account"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(user)}
-                        title="Remove User"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {users.length > 0 ? (
+                users.map((user: User) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.id}</TableCell>
+                    <TableCell>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.photoUrl} alt={user.name} />
+                        <AvatarFallback>
+                          {user.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.apartment}</TableCell>
+                    <TableCell>{user.gender}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewUser(user)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Edit Account"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(user)}
+                          title="Remove User"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <></>
+              )}
             </TableBody>
           </Table>
         </div>
