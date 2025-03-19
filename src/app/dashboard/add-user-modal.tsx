@@ -225,7 +225,10 @@ export function AddUserModal({
         <div className="py-4">
           <div className="flex flex-col items-center mb-6">
             <Avatar className="h-24 w-24 mb-4">
-              <AvatarImage src={""} alt={fullname || "New User"} />
+              <AvatarImage
+                src={`/data/pics/${id}/main.jpg`}
+                alt={fullname || "New User"}
+              />
               <AvatarFallback>
                 {fullname ? fullname.substring(0, 2).toUpperCase() : "NU"}
               </AvatarFallback>
@@ -242,26 +245,24 @@ export function AddUserModal({
               <p className="text-sm font-medium text-muted-foreground">
                 Apartment
               </p>
-              <p className="font-medium">{apartment || "Not specified"}</p>
+              <p className="font-medium">{apartment || "--"}</p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">
                 Gender
               </p>
-              <p className="font-medium capitalize">
-                {gender || "Not specified"}
-              </p>
+              <p className="font-medium capitalize">{gender || "--"}</p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Phone</p>
-              <p className="font-medium">{phone || "Not specified"}</p>
+              <p className="font-medium">{phone || "--"}</p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-muted-foreground">Email</p>
-              <p className="font-medium">{email || "Not specified"}</p>
+              <p className="font-medium">{email || "--"}</p>
             </div>
           </div>
         </div>

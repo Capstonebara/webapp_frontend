@@ -15,6 +15,7 @@ export async function GET(req: Request) {
     const projectRoot = process.cwd();
     const absolutePath = path.join(
       projectRoot,
+      "public",
       "data",
       path.basename(filePath)
     );

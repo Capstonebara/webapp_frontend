@@ -19,11 +19,9 @@ export async function POST(request: Request) {
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Get the project root directory and navigate to data directory
     const projectRoot = process.cwd();
-    // console.log("projectRoot", projectRoot);
-    // const parentDir = path.join(projectRoot, "..");
-    const dataDir = path.join(projectRoot, "data");
+    const publicDir = path.join(projectRoot, "public");
+    const dataDir = path.join(publicDir, "data");
 
     const picsDir = path.join(dataDir, "pics", `${[name]}`);
 
