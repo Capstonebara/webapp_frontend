@@ -121,3 +121,22 @@ export async function editUser(
 
   return result;
 }
+
+export async function getLogsByDay(username: string, token: string) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/residents/logs_by_day?username=${username}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch logs");
+  }
+
+  return res.json();
+}

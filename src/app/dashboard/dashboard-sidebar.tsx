@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Users, Clock, Settings, LogOut } from "lucide-react";
+import { Users, Clock, LogOut, LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
@@ -16,7 +16,19 @@ import {
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-export function DashboardSidebar({ user }: { user: string }) {
+type ViewType = "dashboard" | "users" | "logs";
+
+interface DashboardSidebarProps {
+  user: string;
+  activeView: ViewType;
+  setActiveView: (view: ViewType) => void;
+}
+
+export function DashboardSidebar({
+  user,
+  activeView,
+  setActiveView,
+}: DashboardSidebarProps) {
   const router = useRouter();
 
   const handleSignOut = useCallback(() => {
@@ -40,35 +52,30 @@ export function DashboardSidebar({ user }: { user: string }) {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="#">
-                <Home className="h-5 w-5" />
-                <span>Dashboard</span>
-              </Link>
+            <SidebarMenuButton
+              isActive={activeView === "dashboard"}
+              onClick={() => setActiveView("dashboard")}
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              <span>Dashboard</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive>
-              <Link href="#">
-                <Users className="h-5 w-5" />
-                <span>Users</span>
-              </Link>
+            <SidebarMenuButton
+              isActive={activeView === "users"}
+              onClick={() => setActiveView("users")}
+            >
+              <Users className="h-5 w-5" />
+              <span>Users</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="#">
-                <Clock className="h-5 w-5" />
-                <span>Access Logs</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="#">
-                <Settings className="h-5 w-5" />
-                <span>Settings</span>
-              </Link>
+            <SidebarMenuButton
+              isActive={activeView === "logs"}
+              onClick={() => setActiveView("logs")}
+            >
+              <Clock className="h-5 w-5" />
+              <span>Access Logs</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
