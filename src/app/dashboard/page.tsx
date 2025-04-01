@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import UserDashboard from "./user-dasboard";
+import UserDashboard from "./user-dashboard";
 
 export default function Dashboard() {
   const [accessToken, setAccessToken] = useState("");
