@@ -65,7 +65,11 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_resident || <Spinner />}
+              {stats.data?.total_resident !== undefined ? (
+                stats.data.total_resident
+              ) : (
+                <Spinner />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Apartments with registered residents
@@ -82,7 +86,11 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_entry || <Spinner />}
+              {stats.data?.total_entry !== undefined ? (
+                stats.data.total_entry
+              ) : (
+                <Spinner />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               People entered today
@@ -99,7 +107,11 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_exit || <Spinner />}
+              {stats.data?.total_exit !== undefined ? (
+                stats.data?.total_exit
+              ) : (
+                <Spinner />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">People exited today</p>
           </CardContent>
