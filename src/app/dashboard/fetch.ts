@@ -159,3 +159,22 @@ export async function getRecentLogsByUsername(username: string, token: string) {
 
   return res.json();
 }
+
+export async function getStatsByUsername(username: string, token: string) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/residents/logs_total_residents?username=${username}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch stats");
+  }
+
+  return res.json();
+}

@@ -17,6 +17,16 @@ export default function Dashboard() {
     }
   }, []);
 
+  if (!accessToken && !username) {
+    return (
+      <>
+        <div className="flex h-screen items-center justify-center">
+          Authentication first !
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {accessToken ? (
@@ -24,7 +34,7 @@ export default function Dashboard() {
           <UserDashboard token={accessToken} user={username} />
         </div>
       ) : (
-        <div>404</div>
+        <div className="flex h-screen items-center justify-center">404</div>
       )}
     </>
   );

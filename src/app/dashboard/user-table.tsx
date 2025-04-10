@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Eye, Plus, Loader, Trash2, Edit } from "lucide-react";
+import { Eye, Plus, Trash2, Edit } from "lucide-react";
 import { UserProfileModal } from "./user-profile-modal";
 import { AddUserModal } from "./add-user-modal";
 import { deleteUser, getUsers } from "./fetch";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 import { Bounce, toast } from "react-toastify";
 import { EditUserModal } from "./edit-user";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface User {
   id: number;
@@ -40,7 +41,6 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Only fetch users on initial load
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -127,10 +127,9 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
         </Button>
       </div>
 
-      {/* Hiển thị spinner khi đang fetch */}
       {isLoading ? (
         <div className="flex justify-center items-center py-10">
-          <Loader className="animate-spin h-10 w-10 text-gray-500" />
+          <Spinner />
         </div>
       ) : (
         <div className="rounded-md border">

@@ -10,8 +10,7 @@ import {
 import { Users, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { RecentActivityCard } from "./recent-activity-card";
 import { useEffect, useState } from "react";
-import { getRecentLogsByUsername } from "./fetch";
-import useWebSocket from "@/hooks/user-websocket";
+import { getRecentLogsByUsername, getStatsByUsername } from "./fetch";
 import { Spinner } from "@/components/ui/spinner";
 
 export interface Stats {
@@ -24,10 +23,10 @@ export interface Activity {
   id: string;
   device_id: string;
   name: string;
-  photoUrl: string;
   timestamp: number;
   type: "entry" | "exit";
   apartment: string;
+  captured: string;
 }
 
 export interface DashboardOverviewProps {
@@ -37,9 +36,22 @@ export interface DashboardOverviewProps {
 
 export function DashboardOverview({ username, token }: DashboardOverviewProps) {
   const [logs, setLogs] = useState<Activity[]>([]);
-  const stats = useWebSocket(
-    `ws://localhost:5500/residents/logs_total_ws?username=${username}&token=${token}`
-  );
+  const [stats, setStats] = useState<Stats>();
+  const [loading, isLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const data = await getStatsByUsername(username, token);
+        setStats(data);
+      } catch (error) {
+        console.error("Failed to fetch stats", error);
+      } finally {
+        isLoading(false);
+      }
+    }
+    fetchStats();
+  }, [token, username]);
 
   useEffect(() => {
     async function fetchLogs() {
@@ -65,8 +77,8 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_resident !== undefined ? (
-                stats.data.total_resident
+              {stats?.total_resident !== undefined ? (
+                stats.total_resident
               ) : (
                 <Spinner />
               )}
@@ -86,8 +98,8 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_entry !== undefined ? (
-                stats.data.total_entry
+              {stats?.total_entry !== undefined ? (
+                stats.total_entry
               ) : (
                 <Spinner />
               )}
@@ -107,8 +119,8 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.data?.total_exit !== undefined ? (
-                stats.data?.total_exit
+              {stats?.total_exit !== undefined ? (
+                stats?.total_exit
               ) : (
                 <Spinner />
               )}
@@ -127,11 +139,17 @@ export function DashboardOverview({ username, token }: DashboardOverviewProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 h-[300px] overflow-y-auto pr-5">
-              {logs.map((activity) => (
-                <RecentActivityCard key={activity.id} activity={activity} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <Spinner />
+              </div>
+            ) : (
+              <div className="space-y-4 h-[300px] overflow-y-auto pr-5">
+                {logs.map((activity) => (
+                  <RecentActivityCard key={activity.id} activity={activity} />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
