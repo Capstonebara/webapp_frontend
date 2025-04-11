@@ -109,7 +109,9 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
   };
 
   const handleUserAdded = (newUser: User) => {
-    setUsers((prevUsers) => [...prevUsers, newUser]);
+    setUsers((prevUsers) =>
+      Array.isArray(prevUsers) ? [...prevUsers, newUser] : [newUser]
+    );
   };
 
   const handleUserUpdated = (updatedUser: User) => {

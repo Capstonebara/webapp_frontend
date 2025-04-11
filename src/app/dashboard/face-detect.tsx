@@ -50,7 +50,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
   }, []);
 
   // Optimize detection intervals based on device
-  const DETECTION_INTERVAL = useMemo(() => (isMobile ? 150 : 100), [isMobile]);
+  const DETECTION_INTERVAL = useMemo(() => (isMobile ? 200 : 150), [isMobile]);
   // Reduce model size for mobile
   const TINY_FACE_DETECTOR_OPTIONS = useMemo(() => {
     return new faceapi.TinyFaceDetectorOptions({
@@ -79,7 +79,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastCaptureTime = useRef<number>(0);
-  const captureDebounceTime = isMobile ? 150 : 100;
+  const captureDebounceTime = isMobile ? 200 : 150;
   const streamRef = useRef<MediaStream | null>(null);
   const processingRef = useRef<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -222,7 +222,9 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
       const centerY = boundingBox.y + boundingBox.height / 2;
 
       // Use larger dimension and add padding
-      const sideLength = Math.max(boundingBox.width, boundingBox.height) * 1.25;
+      const sideLength =
+        Math.max(boundingBox.width, boundingBox.height) *
+        (isFirstCapture.current ? 1.5 : 1);
 
       // Calculate boundaries of the square crop
       const squareX = Math.max(0, centerX - sideLength / 2);
