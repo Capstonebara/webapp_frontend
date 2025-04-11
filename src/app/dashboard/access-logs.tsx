@@ -75,7 +75,7 @@ export function AccessLogsAccordion({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-0 pb-2 px-4">
-                <div className="space-y-3">
+                <div className="space-y-3 overflow-y-auto max-h-[400px] pr-3">
                   {logs.map((log) => (
                     <RecentActivityCard activity={log} key={log.id} />
                   ))}

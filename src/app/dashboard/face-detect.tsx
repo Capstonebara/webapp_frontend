@@ -203,118 +203,162 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
 
   const isFirstCapture = useRef(true);
 
+  // Improve captureAndSaveFrameFromVideo
   const captureAndSaveFrameFromVideo = async (
     boundingBox: faceapi.Box,
     count: number,
     direction: string
-  ) => {
+  ): Promise<boolean> => {
     const currentTime = Date.now();
-
-    if (currentTime - lastCaptureTime.current < captureDebounceTime) {
+    if (currentTime - lastCaptureTime.current < captureDebounceTime)
       return false;
-    }
-
     if (!videoRef.current) return false;
 
     const video = videoRef.current;
 
     try {
+      // Create a square crop centered on the face
+      const centerX = boundingBox.x + boundingBox.width / 2;
+      const centerY = boundingBox.y + boundingBox.height / 2;
+
+      // Use larger dimension and add padding
+      const sideLength = Math.max(boundingBox.width, boundingBox.height) * 1.25;
+
+      // Calculate boundaries of the square crop
+      const squareX = Math.max(0, centerX - sideLength / 2);
+      const squareY = Math.max(0, centerY - sideLength / 2);
+      const squareWidth = Math.min(video.width - squareX, sideLength);
+      const squareHeight = Math.min(video.height - squareY, sideLength);
+
+      // Scale to match actual video dimensions
       const scaleX = video.videoWidth / video.width;
       const scaleY = video.videoHeight / video.height;
+      const scaledX = squareX * scaleX;
+      const scaledY = squareY * scaleY;
+      const scaledWidth = squareWidth * scaleX;
+      const scaledHeight = squareHeight * scaleY;
 
-      const scaledBoundingBox = {
-        x: boundingBox.x * scaleX,
-        y: boundingBox.y * scaleY,
-        width: boundingBox.width * scaleX,
-        height: boundingBox.height * scaleY,
-      };
+      // Create canvas with compatibility check
+      const isOffscreenCanvasSupported = typeof OffscreenCanvas !== "undefined";
+      let outputCanvas: OffscreenCanvas | HTMLCanvasElement;
 
-      const outputSize = isMobile ? 224 : 224;
-      const captureCanvas = new OffscreenCanvas(
-        scaledBoundingBox.width,
-        scaledBoundingBox.height
-      );
-      const outputCanvas = new OffscreenCanvas(outputSize, outputSize);
-
-      const captureContext = captureCanvas.getContext("2d");
-      const outputContext = outputCanvas.getContext("2d");
-
-      if (!captureContext || !outputContext) return false;
-
-      captureContext.drawImage(
-        video,
-        scaledBoundingBox.x,
-        scaledBoundingBox.y,
-        scaledBoundingBox.width,
-        scaledBoundingBox.height,
-        0,
-        0,
-        scaledBoundingBox.width,
-        scaledBoundingBox.height
-      );
-
-      const aspectRatio = scaledBoundingBox.width / scaledBoundingBox.height;
-      let drawWidth = outputSize;
-      let drawHeight = outputSize;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (aspectRatio > 1) {
-        drawHeight = outputSize / aspectRatio;
-        offsetY = (outputSize - drawHeight) / 2;
+      if (isOffscreenCanvasSupported) {
+        outputCanvas = new OffscreenCanvas(224, 224);
       } else {
-        drawWidth = outputSize * aspectRatio;
-        offsetX = (outputSize - drawWidth) / 2;
+        outputCanvas = document.createElement("canvas");
+        outputCanvas.width = 224;
+        outputCanvas.height = 224;
       }
 
-      outputContext.drawImage(
-        captureCanvas,
-        offsetX,
-        offsetY,
-        drawWidth,
-        drawHeight
+      const ctx = outputCanvas.getContext("2d") as
+        | CanvasRenderingContext2D
+        | OffscreenCanvasRenderingContext2D;
+      if (!ctx) return false;
+
+      // Draw directly to 224x224 canvas without preserving aspect ratio
+      ctx.drawImage(
+        video,
+        scaledX,
+        scaledY,
+        scaledWidth,
+        scaledHeight,
+        0,
+        0,
+        224,
+        224
       );
 
-      const quality = isMobile ? 1 : 1;
-      const blob = await outputCanvas.convertToBlob({
-        type: "image/jpeg",
-        quality,
-      });
+      // Convert to blob
+      if (isOffscreenCanvasSupported) {
+        const blob = await (outputCanvas as OffscreenCanvas).convertToBlob({
+          type: "image/jpeg",
+          quality: 0.9,
+        });
 
-      const imageName = isFirstCapture.current
-        ? "main.jpg"
-        : `${direction}-${Date.now()}.jpg`;
+        const imageName = isFirstCapture.current
+          ? "main.jpg"
+          : `${direction}-${Date.now()}.jpg`;
 
-      const formData = new FormData();
+        const formData = new FormData();
+        formData.append("image", blob, imageName);
+        formData.append("name", id);
 
-      formData.append("image", blob, imageName);
-      formData.append("name", id);
+        try {
+          const response = await fetch("/api/save-image", {
+            method: "POST",
+            body: formData,
+          });
 
-      const response = await fetch("/api/save-image", {
-        method: "POST",
-        body: formData,
-      });
+          if (response.ok) {
+            lastCaptureTime.current = currentTime;
+            setProgress((prev) => ({
+              ...prev,
+              [direction]: Math.min((prev[direction] || 0) + 20, 100),
+            }));
 
-      if (response.ok) {
-        lastCaptureTime.current = currentTime;
-        // Update progress when image is captured successfully
-        setProgress((prev) => ({
-          ...prev,
-          [direction]: Math.min((prev[direction] || 0) + 20, 100), // Increment by 2% for each successful capture
-        }));
+            if (isFirstCapture.current) {
+              isFirstCapture.current = false;
+            }
 
-        // Mark that the first capture has been completed
-        if (isFirstCapture.current) {
-          isFirstCapture.current = false;
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Error sending image:", error);
+          return false;
         }
+      } else {
+        return new Promise<boolean>((resolve) => {
+          (outputCanvas as HTMLCanvasElement).toBlob(
+            (b) => {
+              if (!b) {
+                resolve(false);
+                return;
+              }
 
-        return true;
+              // Continue with your existing code for sending the blob
+              const imageName = isFirstCapture.current
+                ? "main.jpg"
+                : `${direction}-${Date.now()}.jpg`;
+
+              const formData = new FormData();
+              formData.append("image", b, imageName);
+              formData.append("name", id);
+
+              fetch("/api/save-image", {
+                method: "POST",
+                body: formData,
+              })
+                .then((response) => {
+                  if (response.ok) {
+                    lastCaptureTime.current = currentTime;
+                    setProgress((prev) => ({
+                      ...prev,
+                      [direction]: Math.min((prev[direction] || 0) + 20, 100),
+                    }));
+
+                    if (isFirstCapture.current) {
+                      isFirstCapture.current = false;
+                    }
+
+                    resolve(true);
+                  } else {
+                    resolve(false);
+                  }
+                })
+                .catch(() => resolve(false));
+            },
+            "image/jpeg",
+            0.9
+          );
+        });
       }
-    } catch (error) {
-      console.error("Error capturing and saving frame:", error);
-    }
 
-    return false;
+      // Continue with existing OffscreenCanvas implementation...
+    } catch (error) {
+      console.error("Error capturing frame:", error);
+      return false;
+    }
   };
 
   const handleVideoPlay = async () => {
