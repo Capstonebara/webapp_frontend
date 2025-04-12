@@ -42,7 +42,6 @@ export function DashboardSidebar({
         <div className="flex h-14 items-center px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/placeholder.svg" alt="Logo" />
               <AvatarFallback>MD</AvatarFallback>
             </Avatar>
             <span>{user}</span>
