@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Users, Clock, LogOut, LayoutDashboard } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
