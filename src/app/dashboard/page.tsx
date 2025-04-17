@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import UserDashboard from "./user-dashboard";
+import { checkingToken } from "./fetch";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const [accessToken, setAccessToken] = useState("");
   const [username, setUsername] = useState("");
+
+  const router = useRouter();
 
   useEffect(() => {
     const storedValue = localStorage.getItem("accessToken");
@@ -16,6 +20,26 @@ export default function Dashboard() {
       setUsername(username);
     }
   }, []);
+
+  useEffect(() => {
+    async function checkToken() {
+      try {
+        const response = await checkingToken(accessToken);
+        if (response.success) {
+          router.push("/dashboard");
+        }
+
+        if (!response.success) {
+          localStorage.clear();
+          router.push("/auth");
+        }
+      } catch (error) {
+        console.error("Failed to check token", error);
+      }
+    }
+
+    checkToken();
+  }, [accessToken, router]);
 
   if (!accessToken && !username) {
     return (
