@@ -8,13 +8,13 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedValue = localStorage.getItem("accessToken");
-    const username = localStorage.getItem("user");
+    const token = localStorage.getItem("accessToken");
+    const user = localStorage.getItem("user");
 
-    if (storedValue && username) {
-      router.push("/dashboard");
+    if (token && user) {
+      router.replace("/dashboard");
     } else {
-      router.push("/auth");
+      router.replace("/auth");
     }
   }, [router]);
 

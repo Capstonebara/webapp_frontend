@@ -103,7 +103,10 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
           height: newHeight,
         });
 
-        const circleDiameter = Math.min(newWidth, newHeight) * 0.65;
+        // IMPORTANT FIX: Force circle to be perfectly round
+        // Use width only for diameter calculation (ignore height)
+
+        const circleDiameter = Math.min(newWidth, newWidth) * 0.65;
 
         setCircleSize({
           width: circleDiameter,
@@ -118,7 +121,6 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     return () => window.removeEventListener("resize", updateDimensions);
   }, [isMobile]);
 
-  // Load models
   useEffect(() => {
     const loadModels = async () => {
       const MODEL_URL = publicDir + "/models";
@@ -217,33 +219,41 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const video = videoRef.current;
 
     try {
-      // Create a square crop centered on the face
-      const centerX = boundingBox.x + boundingBox.width / 2;
-      const centerY = boundingBox.y + boundingBox.height / 2;
+      // Always use the intrinsic video size for cropping
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
 
-      // Use larger dimension and add padding
+      // Calculate scaling factors between detection (display) and actual video
+      const scaleX = videoW / video.width;
+      const scaleY = videoH / video.height;
+
+      // Convert bounding box coordinates to intrinsic video coordinates
+      const boxX = boundingBox.x * scaleX;
+      const boxY = boundingBox.y * scaleY;
+      const boxW = boundingBox.width * scaleX;
+      const boxH = boundingBox.height * scaleY;
+
+      // CRITICAL FIX: Force square crop to prevent stretching
+      // Center and side length for square crop (use max of width/height)
+      const centerX = boxX + boxW / 2;
+      const centerY = boxY + boxH / 2;
+
+      // const sideLength = Math.max(boxW, boxH) * faceMultiplier;
       const sideLength =
-        Math.max(boundingBox.width, boundingBox.height) *
-        (isFirstCapture.current ? 1.5 : 1);
+        Math.max(boxW, boxH) * (isFirstCapture.current ? 1.5 : 1); // Larger for first capture (main.jpg)
 
-      // Calculate boundaries of the square crop
-      const squareX = Math.max(0, centerX - sideLength / 2);
-      const squareY = Math.max(0, centerY - sideLength / 2);
-      const squareWidth = Math.min(video.width - squareX, sideLength);
-      const squareHeight = Math.min(video.height - squareY, sideLength);
+      // Ensure crop stays within video bounds as a perfect square
+      const cropX = Math.max(0, centerX - sideLength / 2);
+      const cropY = Math.max(0, centerY - sideLength / 2);
+      const cropSize = Math.min(sideLength, videoW - cropX, videoH - cropY);
 
-      // Scale to match actual video dimensions
-      const scaleX = video.videoWidth / video.width;
-      const scaleY = video.videoHeight / video.height;
-      const scaledX = squareX * scaleX;
-      const scaledY = squareY * scaleY;
-      const scaledWidth = squareWidth * scaleX;
-      const scaledHeight = squareHeight * scaleY;
+      // Use exact same width and height for a perfect square crop
+      const cropW = cropSize;
+      const cropH = cropSize;
 
-      // Create canvas with compatibility check
+      // Prepare output canvas
       const isOffscreenCanvasSupported = typeof OffscreenCanvas !== "undefined";
       let outputCanvas: OffscreenCanvas | HTMLCanvasElement;
-
       if (isOffscreenCanvasSupported) {
         outputCanvas = new OffscreenCanvas(224, 224);
       } else {
@@ -257,18 +267,8 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
         | OffscreenCanvasRenderingContext2D;
       if (!ctx) return false;
 
-      // Draw directly to 224x224 canvas without preserving aspect ratio
-      ctx.drawImage(
-        video,
-        scaledX,
-        scaledY,
-        scaledWidth,
-        scaledHeight,
-        0,
-        0,
-        224,
-        224
-      );
+      // Draw the crop to the output canvas, stretching to 224x224
+      ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 224, 224);
 
       // Convert to blob
       if (isOffscreenCanvasSupported) {
@@ -355,8 +355,6 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
           );
         });
       }
-
-      // Continue with existing OffscreenCanvas implementation...
     } catch (error) {
       console.error("Error capturing frame:", error);
       return false;
@@ -370,6 +368,10 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const canvas = canvasRef.current;
     const displaySize = { width: video.width, height: video.height };
 
+    // Set canvas size to match video size
+    canvas.width = displaySize.width;
+    canvas.height = displaySize.height;
+
     faceapi.matchDimensions(canvas, displaySize);
 
     const counts: Record<string, number> = {
@@ -381,7 +383,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     };
 
     const captureSequence = [
-      { direction: "Straight", target: 5 },
+      { direction: "Straight", target: 6 },
       { direction: "Left", target: 5 },
       { direction: "Right", target: 5 },
       { direction: "Up", target: 5 },
@@ -394,8 +396,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const intervalId = setInterval(async () => {
       if (processingRef.current) return;
 
-      // Skip frames on mobile for better performance
-      if (isMobile) {
+      if (isMobile && !isIOS) {
         frameSkipCount = (frameSkipCount + 1) % 2;
         if (frameSkipCount !== 0) return;
       }
@@ -418,6 +419,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
           detections,
           displaySize
         );
+
         const context = canvas.getContext("2d");
 
         if (!context) {
@@ -438,6 +440,7 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
         if (!isMobile) {
           faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
         }
+        // faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
 
         const pose = calculateFacePose(resizedDetections[0].landmarks);
         const currentDirection = getFaceDirection(pose);
@@ -450,9 +453,10 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
           clearInterval(intervalId);
           setValue("lookingFor", "Done capturing all images");
           setIsDone(true);
-          setConfirmStep(true);
           processingRef.current = false;
 
+          setConfirmStep(true);
+          stopWebcam(); // Add this line to stop the webcam
           return;
         }
 
@@ -509,42 +513,46 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     }
   };
 
-  // Modified camera activation with iOS-specific constraints
+  // Update your camera activation useEffect
   useEffect(() => {
     if (isModelsLoaded && videoRef.current && !isDone) {
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: "user",
-        },
+      const activateCamera = async () => {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: "user",
+          },
+        };
+
+        // Special handling for iOS devices
+        if (isIOS) {
+          // Force hardware acceleration for iOS
+          if (videoRef.current) {
+            videoRef.current.setAttribute("playsinline", "true");
+            videoRef.current.setAttribute("webkit-playsinline", "true");
+          }
+        }
+
+        navigator.mediaDevices
+          .getUserMedia(constraints)
+          .then((stream) => {
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              streamRef.current = stream;
+
+              // For iOS, we need to call play() after setting srcObject
+              if (isIOS) {
+                videoRef.current.play().catch((error) => {
+                  console.error("Error playing video:", error);
+                });
+              }
+            }
+          })
+          .catch((error) => {
+            console.error("Error accessing camera:", error);
+          });
       };
 
-      // Special handling for iOS devices
-      if (isIOS) {
-        // Force hardware acceleration for iOS
-        if (videoRef.current) {
-          videoRef.current.setAttribute("playsinline", "true");
-          videoRef.current.setAttribute("webkit-playsinline", "true");
-        }
-      }
-
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            streamRef.current = stream;
-
-            // For iOS, we need to call play() after setting srcObject
-            if (isIOS) {
-              videoRef.current.play().catch((error) => {
-                console.error("Error playing video:", error);
-              });
-            }
-          }
-        })
-        .catch((error) => {
-          console.error("Error accessing camera:", error);
-        });
+      activateCamera();
     }
 
     return () => {
@@ -605,9 +613,10 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
             width={dimensions.width}
             onPlay={handleVideoPlay}
             autoPlay
-            // playsInline
+            playsInline
             muted
           />
+
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 w-full h-full"
@@ -622,26 +631,27 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
             <>
               <svg
                 className="absolute inset-0 w-full h-full pointer-events-none"
-                preserveAspectRatio="none"
                 viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+                preserveAspectRatio="none"
+                aria-hidden="true"
               >
                 <defs>
-                  <mask id="circle-mask">
-                    <rect fill="white" height="100%" width="100%" />
+                  <mask id="center-circle-mask">
+                    <rect width="100%" height="100%" fill="white" />
                     <circle
                       cx={dimensions.width / 2}
                       cy={dimensions.height / 2}
+                      r={circleSize.width / 3}
                       fill="black"
-                      r={circleSize.width / 2}
                     />
                   </mask>
                 </defs>
                 <rect
-                  fill="black"
-                  height="100%"
-                  mask="url(#circle-mask)"
-                  opacity="0.7"
                   width="100%"
+                  height="100%"
+                  fill="black"
+                  opacity="0.7"
+                  mask="url(#center-circle-mask)"
                 />
               </svg>
             </>

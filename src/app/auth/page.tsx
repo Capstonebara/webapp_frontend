@@ -1,16 +1,17 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Bounce, toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
-import { AuthSchema, authSchema } from "./type";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+
 import { loginUser } from "./login";
-// import { redirect } from "next/navigation";
-import { useRouter } from "next/navigation"; // Thêm import này
-// import { useEffect, useState } from "react";
-import { Bounce, toast } from "react-toastify";
+import { AuthSchema, authSchema } from "./type";
 
 export default function Auth() {
   const {
@@ -24,65 +25,40 @@ export default function Auth() {
 
   const router = useRouter();
 
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const user = localStorage.getItem("user");
+
+    if (token && user) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
   const onSubmit = async (data: { username: string; password: string }) => {
     try {
       const response = await loginUser(data);
+      const authHeader = response.headers?.["authorization"];
 
-      if (response.success) {
-        const authHeader = response.headers["authorization"];
-        let accessToken;
+      if (response.success && authHeader) {
+        const token = authHeader.split("Bearer ")[1];
+        localStorage.setItem("accessToken", token);
+        localStorage.setItem("user", data.username);
 
-        if (authHeader) {
-          accessToken = authHeader.split("Bearer ")[1];
-          localStorage.setItem("accessToken", accessToken);
-          localStorage.setItem("user", data.username);
-          toast.success(response.message, {
-            position: "top-right",
-            autoClose: 2000,
-            hideProgressBar: true,
-            closeOnClick: false,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-            transition: Bounce,
-          });
-          router.push("/dashboard"); // Thay đổi đường dẫn
-        } else {
-          toast.error(response.message, {
-            position: "top-right",
-            autoClose: 2000,
-            hideProgressBar: true,
-            closeOnClick: false,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-            transition: Bounce,
-          });
-        }
-      } else {
-        toast.error(response.message, {
-          position: "top-right",
-          autoClose: 2000,
-          hideProgressBar: true,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
+        toast.success(response.message, {
           theme: "light",
           transition: Bounce,
+          hideProgressBar: true,
+        });
+        router.replace("/dashboard");
+      } else {
+        toast.error(response.message || "Login failed", {
+          theme: "light",
+          transition: Bounce,
+          hideProgressBar: true,
         });
       }
     } catch {
       toast.error("An error occurred during login", {
-        position: "top-right",
-        autoClose: 2000,
-        hideProgressBar: true,
-        closeOnClick: false,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
         theme: "light",
         transition: Bounce,
       });
