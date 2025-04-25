@@ -201,3 +201,29 @@ export async function getStatsByUsername(username: string, token: string) {
 
   return res.json();
 }
+
+export async function changePassword(
+  username: string,
+  old_password: string,
+  new_password: string
+) {
+  if (!username || !old_password || !new_password) {
+    throw new Error("Invalid input");
+  }
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/change_password_resident?username=${username}&old_password=${old_password}&new_password=${new_password}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to change password");
+  }
+
+  return res.json();
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Clock, LogOut, LayoutDashboard } from "lucide-react";
+import { Users, Clock, LogOut, LayoutDashboard, Key } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
@@ -16,7 +16,7 @@ import {
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-type ViewType = "dashboard" | "users" | "logs";
+type ViewType = "dashboard" | "users" | "logs" | "change-password";
 
 interface DashboardSidebarProps {
   user: string;
@@ -75,6 +75,15 @@ export function DashboardSidebar({
             >
               <Clock className="h-5 w-5" />
               <span>Access Logs</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={activeView === "change-password"}
+              onClick={() => setActiveView("change-password")}
+            >
+              <Key className="h-5 w-5" />
+              <span>Change Password</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -10,8 +10,9 @@ import { DashboardSidebar } from "./dashboard-sidebar";
 import { UsersTable } from "./user-table";
 import { AccessLogsAccordion } from "./access-logs";
 import { DashboardOverview } from "./dashboard-overview";
+import { ChangePassword } from "./change-password";
 
-type ViewType = "dashboard" | "users" | "logs";
+type ViewType = "dashboard" | "users" | "logs" | "change-password";
 
 export default function UserDashboard({
   token,
@@ -30,6 +31,8 @@ export default function UserDashboard({
         return <UsersTable token={token} user={user} />;
       case "logs":
         return <AccessLogsAccordion username={user} token={token} />;
+      case "change-password":
+        return <ChangePassword user={user} />;
       default:
         return <DashboardOverview token={token} username={user} />;
     }
@@ -50,6 +53,7 @@ export default function UserDashboard({
               {activeView === "dashboard" && "Dashboard"}
               {activeView === "users" && "Users Management"}
               {activeView === "logs" && "Access Logs"}
+              {activeView === "change-password" && "Change Password"}
             </h1>
           </div>
         </header>
