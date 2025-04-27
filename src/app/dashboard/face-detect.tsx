@@ -205,7 +205,6 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
 
   const isFirstCapture = useRef(true);
 
-  // Improve captureAndSaveFrameFromVideo
   const captureAndSaveFrameFromVideo = async (
     boundingBox: faceapi.Box,
     count: number,
@@ -219,39 +218,27 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const video = videoRef.current;
 
     try {
-      // Always use the intrinsic video size for cropping
       const videoW = video.videoWidth;
       const videoH = video.videoHeight;
-
-      // Calculate scaling factors between detection (display) and actual video
       const scaleX = videoW / video.width;
       const scaleY = videoH / video.height;
 
-      // Convert bounding box coordinates to intrinsic video coordinates
       const boxX = boundingBox.x * scaleX;
       const boxY = boundingBox.y * scaleY;
       const boxW = boundingBox.width * scaleX;
       const boxH = boundingBox.height * scaleY;
 
-      // CRITICAL FIX: Force square crop to prevent stretching
-      // Center and side length for square crop (use max of width/height)
       const centerX = boxX + boxW / 2;
       const centerY = boxY + boxH / 2;
-
-      // const sideLength = Math.max(boxW, boxH) * faceMultiplier;
       const sideLength =
-        Math.max(boxW, boxH) * (isFirstCapture.current ? 1.5 : 1); // Larger for first capture (main.jpg)
+        Math.max(boxW, boxH) * (isFirstCapture.current ? 1.5 : 1);
 
-      // Ensure crop stays within video bounds as a perfect square
       const cropX = Math.max(0, centerX - sideLength / 2);
       const cropY = Math.max(0, centerY - sideLength / 2);
       const cropSize = Math.min(sideLength, videoW - cropX, videoH - cropY);
-
-      // Use exact same width and height for a perfect square crop
       const cropW = cropSize;
       const cropH = cropSize;
 
-      // Prepare output canvas
       const isOffscreenCanvasSupported = typeof OffscreenCanvas !== "undefined";
       let outputCanvas: OffscreenCanvas | HTMLCanvasElement;
       if (isOffscreenCanvasSupported) {
@@ -267,93 +254,58 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
         | OffscreenCanvasRenderingContext2D;
       if (!ctx) return false;
 
-      // Draw the crop to the output canvas, stretching to 224x224
       ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 224, 224);
 
-      // Convert to blob
-      if (isOffscreenCanvasSupported) {
-        const blob = await (outputCanvas as OffscreenCanvas).convertToBlob({
-          type: "image/jpeg",
-          quality: 0.9,
+      const blob = isOffscreenCanvasSupported
+        ? await (outputCanvas as OffscreenCanvas).convertToBlob({
+            type: "image/jpeg",
+            quality: 0.9,
+          })
+        : await new Promise<Blob | null>((resolve) =>
+            (outputCanvas as HTMLCanvasElement).toBlob(
+              (b) => resolve(b),
+              "image/jpeg",
+              0.9
+            )
+          );
+
+      if (!blob) return false;
+
+      const imageName = isFirstCapture.current
+        ? "main.jpg"
+        : `${direction}-${Date.now()}.jpg`;
+
+      const formData = new FormData();
+      formData.append("image", blob, imageName);
+      formData.append("name", id);
+
+      try {
+        const response = await fetch("/api/save-image", {
+          method: "POST",
+          body: formData,
         });
 
-        const imageName = isFirstCapture.current
-          ? "main.jpg"
-          : `${direction}-${Date.now()}.jpg`;
+        if (response.ok) {
+          lastCaptureTime.current = currentTime;
+          setProgress((prev) => ({
+            ...prev,
+            [direction]: Math.min((prev[direction] || 0) + 20, 100),
+          }));
 
-        const formData = new FormData();
-        formData.append("image", blob, imageName);
-        formData.append("name", id);
-
-        try {
-          const response = await fetch("/api/save-image", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (response.ok) {
-            lastCaptureTime.current = currentTime;
-            setProgress((prev) => ({
-              ...prev,
-              [direction]: Math.min((prev[direction] || 0) + 20, 100),
-            }));
-
-            if (isFirstCapture.current) {
-              isFirstCapture.current = false;
-            }
-
-            return true;
+          if (isFirstCapture.current) {
+            isFirstCapture.current = false;
           }
-          return false;
-        } catch (error) {
-          console.error("Error sending image:", error);
+
+          return true;
+        } else {
+          console.error("Server rejected image upload");
+          await new Promise((res) => setTimeout(res, captureDebounceTime));
           return false;
         }
-      } else {
-        return new Promise<boolean>((resolve) => {
-          (outputCanvas as HTMLCanvasElement).toBlob(
-            (b) => {
-              if (!b) {
-                resolve(false);
-                return;
-              }
-
-              // Continue with your existing code for sending the blob
-              const imageName = isFirstCapture.current
-                ? "main.jpg"
-                : `${direction}-${Date.now()}.jpg`;
-
-              const formData = new FormData();
-              formData.append("image", b, imageName);
-              formData.append("name", id);
-
-              fetch("/api/save-image", {
-                method: "POST",
-                body: formData,
-              })
-                .then((response) => {
-                  if (response.ok) {
-                    lastCaptureTime.current = currentTime;
-                    setProgress((prev) => ({
-                      ...prev,
-                      [direction]: Math.min((prev[direction] || 0) + 20, 100),
-                    }));
-
-                    if (isFirstCapture.current) {
-                      isFirstCapture.current = false;
-                    }
-
-                    resolve(true);
-                  } else {
-                    resolve(false);
-                  }
-                })
-                .catch(() => resolve(false));
-            },
-            "image/jpeg",
-            0.9
-          );
-        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        await new Promise((res) => setTimeout(res, captureDebounceTime));
+        return false;
       }
     } catch (error) {
       console.error("Error capturing frame:", error);
@@ -368,7 +320,6 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const canvas = canvasRef.current;
     const displaySize = { width: video.width, height: video.height };
 
-    // Set canvas size to match video size
     canvas.width = displaySize.width;
     canvas.height = displaySize.height;
 
@@ -396,74 +347,66 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
     const intervalId = setInterval(async () => {
       if (processingRef.current) return;
 
-      if (isMobile && !isIOS) {
-        frameSkipCount = (frameSkipCount + 1) % 2;
-        if (frameSkipCount !== 0) return;
-      }
-
       try {
         processingRef.current = true;
+
+        if (isMobile && !isIOS) {
+          frameSkipCount = (frameSkipCount + 1) % 2;
+          if (frameSkipCount !== 0) {
+            processingRef.current = false;
+            return;
+          }
+        }
 
         const detections = await faceapi
           .detectAllFaces(video, TINY_FACE_DETECTOR_OPTIONS)
           .withFaceLandmarks();
 
-        if (detections.length >= 2) {
-          setValue("faceDirection", "Multiple faces detected");
-          processingRef.current = false;
-
-          return;
-        }
-
         const resizedDetections = faceapi.resizeResults(
           detections,
           displaySize
         );
-
         const context = canvas.getContext("2d");
 
         if (!context) {
           processingRef.current = false;
-
           return;
         }
 
         context.clearRect(0, 0, canvas.width, canvas.height);
 
+        if (detections.length >= 2) {
+          setValue("faceDirection", "Multiple faces detected");
+          processingRef.current = false;
+          return;
+        }
+
         if (resizedDetections.length === 0) {
           setValue("faceDirection", "No face detected");
           processingRef.current = false;
-
           return;
         }
 
         if (!isMobile) {
           faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
         }
-        // faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
 
         const pose = calculateFacePose(resizedDetections[0].landmarks);
         const currentDirection = getFaceDirection(pose);
-
         setValue("faceDirection", currentDirection);
 
         const currentStage = captureSequence[currentStageIndex];
-
         if (!currentStage) {
           clearInterval(intervalId);
-          setValue("lookingFor", "Done capturing all images");
           setIsDone(true);
-          processingRef.current = false;
-
           setConfirmStep(true);
-          stopWebcam(); // Add this line to stop the webcam
+          stopWebcam();
+          setValue("lookingFor", "Done capturing all images");
+          processingRef.current = false;
           return;
         }
 
         setValue("lookingFor", currentStage.direction);
-
-        // Release processing lock before capture attempt
-        processingRef.current = false;
 
         if (currentDirection === currentStage.direction) {
           const directionKey = currentStage.direction.toLowerCase();
@@ -477,18 +420,18 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
 
           if (captured) {
             counts[directionKey]++;
-            if (counts[directionKey] === currentStage.target) {
+            if (counts[directionKey] >= currentStage.target) {
               currentStageIndex++;
-
-              // Trigger vibration on mobile
               if (isMobile && navigator.vibrate) {
-                navigator.vibrate(200); // Rung 200ms
+                navigator.vibrate(200);
               }
             }
           }
         }
+
+        processingRef.current = false;
       } catch (error) {
-        console.error("Error in face detection:", error);
+        console.error("Error in detection loop:", error);
         processingRef.current = false;
       }
     }, DETECTION_INTERVAL);
