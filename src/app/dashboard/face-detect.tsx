@@ -240,8 +240,9 @@ function FaceDetectFunction({
 
       const centerX = boxX + boxW / 2;
       const centerY = boxY + boxH / 2;
-      const sideLength =
-        Math.max(boxW, boxH) * (isFirstCapture.current ? 1.5 : 1);
+      // const sideLength =
+      //   Math.max(boxW, boxH) * (isFirstCapture.current ? 1.5 : 1);
+      const sideLength = Math.max(boxW, boxH) * 1.5;
 
       const cropX = Math.max(0, centerX - sideLength / 2);
       const cropY = Math.max(0, centerY - sideLength / 2);
