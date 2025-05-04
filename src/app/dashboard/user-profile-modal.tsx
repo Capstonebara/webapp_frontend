@@ -48,7 +48,7 @@ export function UserProfileModal({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
               <p className="text-sm font-medium leading-none text-muted-foreground">
-                Username
+                Host
               </p>
               <p className="text-sm font-medium">{user.username}</p>
             </div>

@@ -73,7 +73,7 @@ export function ChangePassword({ user }: { user: string }) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-4 items-center">
             <Label htmlFor="username" className="text-right">
-              Username
+              Host
             </Label>
             <Input
               id="username"

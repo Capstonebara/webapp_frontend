@@ -140,7 +140,7 @@ export function UsersTable({ token, user }: { token: string; user: string }) {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Photo</TableHead>
-                <TableHead>Username</TableHead>
+                <TableHead>Host</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Apartment</TableHead>
                 <TableHead>Gender</TableHead>
