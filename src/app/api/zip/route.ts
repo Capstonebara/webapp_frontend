@@ -1,70 +1,50 @@
 import { createWriteStream } from "fs";
-import { readdir, stat, unlink, rmdir } from "fs/promises";
+import { stat } from "fs/promises";
 import path from "path";
 import archiver from "archiver";
 import { NextResponse } from "next/server";
+import fs from "fs/promises";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const { user_id } = await req.json();
     const projectRoot = process.cwd();
     const publicDir = path.join(projectRoot, "public");
     const dataDir = path.join(publicDir, "data");
-    const picsDir = path.join(dataDir, "pics");
+    const picsDir = path.join(dataDir, "pics", String(user_id)); // ✅ chỉ zip đúng folder
+    const zipPath = path.join(dataDir, "zips", `${user_id}.zip`);
 
-    const zipFiles: string[] = [];
-
-    // Get all directories inside picsDir
-    const directories = await readdir(picsDir);
-    for (const dir of directories) {
-      const dirPath = path.join(picsDir, dir);
-      const stats = await stat(dirPath);
-      if (stats.isDirectory()) {
-        const zipPath = path.join(dataDir, `pics.zip`);
-        zipFiles.push(zipPath);
-
-        // Create a write stream for the zip file
-        const output = createWriteStream(zipPath);
-        const archive = archiver("zip", { zlib: { level: 9 } });
-        archive.pipe(output);
-        archive.directory(dirPath, false);
-
-        await archive.finalize();
-
-        // Wait for the zip to complete
-        await new Promise((resolve, reject) => {
-          output.on("close", () => resolve(undefined));
-          output.on("error", reject);
-        });
-
-        // Delete the folder after zipping
-        await deleteFolderRecursive(dirPath);
-      }
+    // Kiểm tra folder có tồn tại không
+    const stats = await stat(picsDir);
+    if (!stats.isDirectory()) {
+      return NextResponse.json({ error: "No images to zip" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, zipFiles });
+    // Tạo folder zips nếu chưa có
+    const zipsDir = path.join(dataDir, "zips");
+    await fs.mkdir(zipsDir, { recursive: true });
+
+    const output = createWriteStream(zipPath);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+
+    archive.pipe(output);
+    archive.directory(picsDir, false);
+    await archive.finalize();
+
+    await new Promise((resolve, reject) => {
+      output.on("close", () => resolve(undefined));
+      output.on("error", reject);
+    });
+
+    return NextResponse.json({
+      success: true,
+      zipFiles: [`data/zips/${user_id}.zip`],
+    });
   } catch (error) {
     console.error("Error zipping images:", error);
     return NextResponse.json(
       { error: "Failed to zip images" },
       { status: 500 }
     );
-  }
-}
-
-async function deleteFolderRecursive(folderPath: string) {
-  try {
-    const files = await readdir(folderPath);
-    for (const file of files) {
-      const filePath = path.join(folderPath, file);
-      const stats = await stat(filePath);
-      if (stats.isDirectory()) {
-        await deleteFolderRecursive(filePath);
-      } else {
-        await unlink(filePath);
-      }
-    }
-    await rmdir(folderPath);
-  } catch (error) {
-    console.error("Error deleting folder:", folderPath, error);
   }
 }

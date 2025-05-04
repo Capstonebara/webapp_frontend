@@ -14,10 +14,11 @@ import { FaceSchema } from "./type";
 
 interface FaceDetectProps {
   id: string;
+  sessionId: string;
   setConfirmStep: (value: boolean) => void;
 }
 
-export function FaceDetect({ id, setConfirmStep }: FaceDetectProps) {
+export function FaceDetect({ id, setConfirmStep, sessionId }: FaceDetectProps) {
   const methods = useForm<FaceSchema>({
     defaultValues: {
       ModelsLoaded: false,
@@ -28,12 +29,21 @@ export function FaceDetect({ id, setConfirmStep }: FaceDetectProps) {
 
   return (
     <FormProvider {...methods}>
-      <FaceDetectFunction id={id} setConfirmStep={setConfirmStep} />
+      <FaceDetectFunction
+        id={id}
+        setConfirmStep={setConfirmStep}
+        sessionId={sessionId}
+      />
     </FormProvider>
   );
 }
 
-function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
+function FaceDetectFunction({
+  id,
+  setConfirmStep,
+  sessionId,
+}: FaceDetectProps) {
+  console.log("id", id);
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const [isIOS, setIsIOS] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -277,7 +287,8 @@ function FaceDetectFunction({ id, setConfirmStep }: FaceDetectProps) {
 
       const formData = new FormData();
       formData.append("image", blob, imageName);
-      formData.append("name", id);
+      // formData.append("name", id);
+      formData.append("name", sessionId);
 
       try {
         const response = await fetch("/api/save-image", {

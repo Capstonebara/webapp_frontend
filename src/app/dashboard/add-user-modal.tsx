@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, Loader2 } from "lucide-react";
 import path from "path";
 import { User } from "./user-table";
+import { v4 as uuidv4 } from "uuid";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -69,6 +70,8 @@ export function AddUserModal({
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [sessionId, setSessionId] = useState("");
+
   const onSubmit = async (form: DashboardSchema) => {
     try {
       const response = await addUser(form, token);
@@ -76,6 +79,7 @@ export function AddUserModal({
       if (response.success) {
         setFormStep(false);
         setId(response.id);
+        setSessionId(uuidv4());
       }
 
       if (!response.success) {
@@ -106,12 +110,161 @@ export function AddUserModal({
     }
   };
 
+  // const onComfirm = async () => {
+  //   setLoading(true);
+
+  //   try {
+  //     // Gọi API zip để tạo file ZIP
+  //     const zipResponse = await fetch(`/api/zip`, { method: "POST" });
+
+  //     if (!zipResponse.ok) {
+  //       console.error(
+  //         "Error creating ZIP:",
+  //         zipResponse.status,
+  //         await zipResponse.text()
+  //       );
+  //       setLoading(false);
+  //       return;
+  //     }
+
+  //     // Lấy danh sách file ZIP từ API
+  //     const { zipFiles } = await zipResponse.json();
+  //     if (!zipFiles || zipFiles.length === 0) {
+  //       console.error("No ZIP files created");
+  //       setLoading(false);
+  //       return;
+  //     }
+
+  //     // Đọc file ZIP từ server
+  //     const zipFilePath = zipFiles[0]; // Lấy file đầu tiên (hoặc lặp qua nếu có nhiều file)
+  //     const zipBlob = await fetch(
+  //       `/api/download?file=${encodeURIComponent(zipFilePath)}`
+  //     ).then((res) => res.blob());
+  //     const zipFile = new File([zipBlob], path.basename(zipFilePath));
+
+  //     // Chuẩn bị dữ liệu gửi đến API embed
+  //     const formData = new FormData();
+  //     formData.append("file", zipFile);
+
+  //     // Gửi file ZIP đến API embed
+  //     const embedResponse = await fetch(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/embed?folder_id=${id}`,
+  //       {
+  //         method: "POST",
+  //         body: formData,
+  //       }
+  //     );
+
+  //     if (embedResponse.ok) {
+  //       // Create new user object with the form data
+  //       const newUser: User = {
+  //         id: parseInt(id),
+  //         username: username,
+  //         name: fullname,
+  //         apartment: apartment,
+  //         gender: gender,
+  //         phone: phone || "",
+  //         email: email || "",
+  //         photoUrl: "", // You might need to get the actual photo URL from the response
+  //       };
+
+  //       // Call the callback to update parent component's state
+  //       onUserAdded(newUser);
+
+  //       reset();
+  //       onClose();
+  //       setConfirmStep(false);
+  //       setFormStep(true);
+  //       setLoading(false);
+  //       toast.success("Add user successfully!", {
+  //         position: "top-right",
+  //         autoClose: 2000,
+  //         hideProgressBar: true,
+  //         closeOnClick: false,
+  //         pauseOnHover: true,
+  //         draggable: true,
+  //         progress: undefined,
+  //         theme: "light",
+  //         transition: Bounce,
+  //       });
+  //     } else {
+  //       reset();
+
+  //       onClose();
+  //       setConfirmStep(false);
+  //       setFormStep(true);
+  //       setLoading(false);
+
+  //       toast.error(embedResponse.status.toString(), {
+  //         position: "top-right",
+  //         autoClose: 2000,
+  //         hideProgressBar: true,
+  //         closeOnClick: false,
+  //         pauseOnHover: true,
+  //         draggable: true,
+  //         progress: undefined,
+  //         theme: "light",
+  //         transition: Bounce,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     reset();
+
+  //     onClose();
+  //     setConfirmStep(false);
+  //     setFormStep(true);
+  //     setLoading(false);
+
+  //     toast.error(String(error), {
+  //       position: "top-right",
+  //       autoClose: 2000,
+  //       hideProgressBar: true,
+  //       closeOnClick: false,
+  //       pauseOnHover: true,
+  //       draggable: true,
+  //       progress: undefined,
+  //       theme: "light",
+  //       transition: Bounce,
+  //     });
+  //   }
+  // };
   const onComfirm = async () => {
     setLoading(true);
 
     try {
-      // Gọi API zip để tạo file ZIP
-      const zipResponse = await fetch(`/api/zip`, { method: "POST" });
+      // 🔁 Step 1: Di chuyển thư mục ảnh từ session → user id
+      const finalizeRes = await fetch(`api/finalize-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          user_id: id,
+        }),
+      });
+
+      if (!finalizeRes.ok) {
+        console.error("Failed to finalize session folder");
+        setLoading(false);
+        toast.error("Failed to move captured images", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: true,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
+        return;
+      }
+
+      // 🔁 Step 2: Gọi API zip ảnh
+      const zipResponse = await fetch(`/api/zip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: id }),
+      });
 
       if (!zipResponse.ok) {
         console.error(
@@ -123,7 +276,6 @@ export function AddUserModal({
         return;
       }
 
-      // Lấy danh sách file ZIP từ API
       const { zipFiles } = await zipResponse.json();
       if (!zipFiles || zipFiles.length === 0) {
         console.error("No ZIP files created");
@@ -131,18 +283,17 @@ export function AddUserModal({
         return;
       }
 
-      // Đọc file ZIP từ server
-      const zipFilePath = zipFiles[0]; // Lấy file đầu tiên (hoặc lặp qua nếu có nhiều file)
+      // 🔁 Step 3: Đọc file ZIP
+      const zipFilePath = zipFiles[0];
       const zipBlob = await fetch(
         `/api/download?file=${encodeURIComponent(zipFilePath)}`
       ).then((res) => res.blob());
       const zipFile = new File([zipBlob], path.basename(zipFilePath));
 
-      // Chuẩn bị dữ liệu gửi đến API embed
+      // 🔁 Step 4: Gửi ZIP sang API embed
       const formData = new FormData();
       formData.append("file", zipFile);
 
-      // Gửi file ZIP đến API embed
       const embedResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/embed?folder_id=${id}`,
         {
@@ -152,7 +303,12 @@ export function AddUserModal({
       );
 
       if (embedResponse.ok) {
-        // Create new user object with the form data
+        await fetch("/api/cleanup-user-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: id }),
+        });
+
         const newUser: User = {
           id: parseInt(id),
           username: username,
@@ -161,12 +317,10 @@ export function AddUserModal({
           gender: gender,
           phone: phone || "",
           email: email || "",
-          photoUrl: "", // You might need to get the actual photo URL from the response
+          photoUrl: "",
         };
 
-        // Call the callback to update parent component's state
         onUserAdded(newUser);
-
         reset();
         onClose();
         setConfirmStep(false);
@@ -184,33 +338,15 @@ export function AddUserModal({
           transition: Bounce,
         });
       } else {
-        reset();
-
-        onClose();
-        setConfirmStep(false);
-        setFormStep(true);
-        setLoading(false);
-
-        toast.error(embedResponse.status.toString(), {
-          position: "top-right",
-          autoClose: 2000,
-          hideProgressBar: true,
-          closeOnClick: false,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-          transition: Bounce,
-        });
+        throw new Error(`Embed failed with status: ${embedResponse.status}`);
       }
     } catch (error) {
+      console.error("Error in confirm flow:", error);
       reset();
-
       onClose();
       setConfirmStep(false);
       setFormStep(true);
       setLoading(false);
-
       toast.error(String(error), {
         position: "top-right",
         autoClose: 2000,
@@ -411,7 +547,12 @@ export function AddUserModal({
           </>
         )}
         {!formStep && !confirmStep && (
-          <FaceDetect id={id} setConfirmStep={setConfirmStep} />
+          // <FaceDetect id={id} setConfirmStep={setConfirmStep} />
+          <FaceDetect
+            id={id}
+            sessionId={sessionId}
+            setConfirmStep={setConfirmStep}
+          />
         )}
         {confirmStep && <ConfirmDialog />}
       </DialogContent>

@@ -5,25 +5,20 @@ import { stat } from "fs/promises";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const filePath = url.searchParams.get("file");
+  const fileParam = url.searchParams.get("file");
 
-  if (!filePath) {
+  if (!fileParam) {
     return NextResponse.json({ error: "Missing file path" }, { status: 400 });
   }
 
   try {
     const projectRoot = process.cwd();
-    const absolutePath = path.join(
-      projectRoot,
-      "public",
-      "data",
-      path.basename(filePath)
-    );
+    const zipDir = path.join(projectRoot, "public", "data", "zips");
+    const filename = path.basename(fileParam); // "2.zip"
+    const absolutePath = path.join(zipDir, filename);
 
-    // Kiểm tra file có tồn tại không
-    await stat(absolutePath);
+    await stat(absolutePath); // check existence
 
-    // Trả về file ZIP
     const fileStream = createReadStream(absolutePath);
     const readableStream = new ReadableStream({
       start(controller) {
@@ -36,13 +31,11 @@ export async function GET(req: Request) {
     return new Response(readableStream, {
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${path.basename(
-          absolutePath
-        )}"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
-    console.error("Error serving file:", filePath, error);
+    console.error("Error serving file:", fileParam, error);
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 }
